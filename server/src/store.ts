@@ -185,7 +185,11 @@ function currentCompliment(weather: Weather | null): string | null {
 
   const age = Date.now() - complimentAt;
   if (complimentText === null || age > 10 * 60 * 1000) {
-    complimentText = pickCompliment(config.sources.compliments.file, weather);
+    complimentText = pickCompliment(
+      config.sources.compliments.file,
+      weather,
+      config.household.timezone,
+    );
     complimentAt = Date.now();
   }
   return complimentText;

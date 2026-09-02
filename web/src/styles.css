@@ -1,33 +1,73 @@
-/* ------------------------------------------------------------------ *
+/* ==================================================================== *
  * Tokens
- * ------------------------------------------------------------------ */
+ *
+ * Calibrated for a screen read at two to three metres, in a room whose
+ * light changes all day — so contrast runs higher than a desktop app
+ * would, and nothing important is carried by colour alone.
+ * ==================================================================== */
 
 :root {
-  --bg: #05070d;
-  --panel: rgba(255, 255, 255, 0.035);
-  --panel-line: rgba(255, 255, 255, 0.07);
-  --ink: #e9eefb;
-  --ink-dim: #93a0bb;
-  --ink-faint: #5a6784;
+  /* --- Type ------------------------------------------------------- */
+  /* Override --font-display to point at a self-hosted face; the stack
+     below is what is guaranteed present on a Raspberry Pi image. */
+  --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-display: var(--font);
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Roboto Mono', Menlo, monospace;
 
-  --accent: #7dd3fc;
-  --warn: #fbbf24;
-  --alert: #f87171;
-  --wet: #60a5fa;
+  /* --- Surface ---------------------------------------------------- */
+  /* One cool hue family throughout — mixing warm and cool greys is the
+     fastest way to make a dark UI look muddy. */
+  --bg: hsl(222 32% 4%);
+  --bg-lift: hsl(222 28% 7%);
+
+  --panel: hsl(220 30% 100% / 0.032);
+  --panel-edge: hsl(220 40% 100% / 0.07);
+  --panel-sheen: hsl(220 60% 100% / 0.055);
+  --hairline: hsl(220 30% 100% / 0.06);
+
+  /* --- Ink -------------------------------------------------------- */
+  --ink: hsl(215 40% 96%);
+  --ink-soft: hsl(215 18% 72%);
+  --ink-dim: hsl(215 14% 54%);
+  --ink-faint: hsl(215 14% 38%);
+
+  /* --- Accent ----------------------------------------------------- */
+  /* One accent. The other three are severity, not decoration, and share
+     a lightness so no single state shouts louder than its meaning. */
+  --accent: hsl(199 72% 70%);
+  --accent-deep: hsl(199 62% 46%);
+  --wet: hsl(213 76% 68%);
+  --warn: hsl(38 82% 62%);
+  --alert: hsl(2 76% 68%);
 
   --mood: transparent;
   --night-dim: 1;
 
-  /* One scale, driven by the viewport, so the same build fits a 24" monitor
-     and a 55" TV without per-device tuning. */
+  /* --- Motion ----------------------------------------------------- *
+   * Built-in easings are too weak to read as intentional. These are the
+   * only three curves in the file. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* --- Rhythm ----------------------------------------------------- *
+   * One viewport-derived unit drives the whole scale, so the same build
+   * fits a 24" monitor and a 55" TV without per-device tuning. */
   --u: clamp(9px, 1.05vw, 22px);
-  --gap: calc(var(--u) * 1.1);
-  --radius: calc(var(--u) * 0.9);
+  --gap: calc(var(--u) * 1.15);
+
+  /* Radii step down as elements nest, so curves stay concentric. */
+  --r-lg: calc(var(--u) * 1.15);
+  --r-md: calc(var(--u) * 0.7);
+  --r-sm: calc(var(--u) * 0.4);
 
   color-scheme: dark;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -40,11 +80,11 @@ body {
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-    Arial, sans-serif;
+  font-family: var(--font);
   font-size: var(--u);
   line-height: 1.35;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overflow: hidden;
 }
 
@@ -57,84 +97,124 @@ body.is-phone {
   height: 100%;
 }
 
-/* ------------------------------------------------------------------ *
- * Boot + connection states
- * ------------------------------------------------------------------ */
+/* Every number on this screen is compared against another number —
+   yesterday's temperature, the next hour, the minute before. Proportional
+   digits make them jitter; tabular figures hold the column still. */
+.clock-time,
+.clock-seconds,
+.wx-temp,
+.wx-hour-temp,
+.wx-hour-rain,
+.wx-day-min,
+.wx-day-max,
+.wx-day-rain,
+.agenda-time,
+.surf-stat-value,
+.reminder-due {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ==================================================================== *
+ * Grain
+ *
+ * A single fixed layer. Large flat fields of near-black band badly on
+ * cheap panels; a little noise breaks the banding and stops the dark
+ * areas reading as dead pixels.
+ * ==================================================================== */
+
+body.is-wall::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ==================================================================== *
+ * Boot and connection states
+ * ==================================================================== */
 
 .boot {
   display: grid;
   place-content: center;
   height: 100%;
-  color: var(--ink-faint);
-  font-size: calc(var(--u) * 1.6);
-  text-align: center;
   gap: 0.6em;
+  color: var(--ink-faint);
+  font-size: calc(var(--u) * 1.5);
+  letter-spacing: 0.02em;
+  text-align: center;
 }
 
 .boot-detail {
+  max-width: 44ch;
   font-size: 0.6em;
   color: var(--ink-faint);
-  max-width: 40ch;
+  text-wrap: pretty;
 }
 
 #app.is-offline .dashboard {
-  filter: saturate(0.4);
+  filter: saturate(0.35);
 }
 
 .status {
   position: fixed;
-  right: calc(var(--u) * 0.8);
-  bottom: calc(var(--u) * 0.8);
-  width: calc(var(--u) * 0.5);
-  height: calc(var(--u) * 0.5);
+  right: calc(var(--u) * 0.9);
+  bottom: calc(var(--u) * 0.9);
+  z-index: 4;
+  width: calc(var(--u) * 0.42);
+  height: calc(var(--u) * 0.42);
   border-radius: 50%;
   background: transparent;
-  transition: background 600ms ease;
+  transition: background 600ms var(--ease-out);
 }
 
 #app.is-offline .status,
 .status.is-stale {
   background: var(--warn);
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-/* ------------------------------------------------------------------ *
- * Dashboard shell
- * ------------------------------------------------------------------ */
+/* ==================================================================== *
+ * Shell
+ * ==================================================================== */
 
 .dashboard {
   height: 100%;
-  padding: calc(var(--u) * 1.4);
-  /* The burn-in nudge and the night dimmer both live on this element. */
-  transition:
-    transform 3s ease,
-    opacity 4s ease;
+  padding: calc(var(--u) * 1.5) calc(var(--u) * 1.7);
   opacity: var(--night-dim);
-  background: radial-gradient(
-    120% 90% at 80% 0%,
-    var(--mood) 0%,
-    transparent 60%
-  );
+  /* The burn-in nudge and the night dimmer both ride on this element. */
+  transition:
+    transform 3s var(--ease-in-out),
+    opacity 4s linear,
+    filter 4s linear;
+  /* Severity tint. Off-centre and radial so it reads as light falling on
+     the screen rather than a flat colour wash. */
+  background:
+    radial-gradient(120% 85% at 78% -10%, var(--mood), transparent 62%),
+    radial-gradient(90% 60% at 8% 105%, var(--bg-lift), transparent 70%);
 }
 
 .dashboard[data-mood='wet'] {
-  --mood: rgba(96, 165, 250, 0.13);
+  --mood: hsl(213 76% 60% / 0.13);
 }
 .dashboard[data-mood='warn'] {
-  --mood: rgba(251, 191, 36, 0.13);
+  --mood: hsl(38 82% 55% / 0.12);
 }
 .dashboard[data-mood='alert'] {
-  --mood: rgba(248, 113, 113, 0.16);
+  --mood: hsl(2 76% 60% / 0.15);
 }
 
+/* Warmer and flatter after bedtime, so it stops lighting the hallway. */
 .dashboard.is-night {
-  /* Warmer and flatter after bedtime, so it does not light the hallway. */
-  filter: sepia(0.25) saturate(0.7);
+  filter: sepia(0.28) saturate(0.62) brightness(0.92);
 }
 
 .grid {
   display: grid;
-  gap: calc(var(--gap) * 1.6);
+  gap: calc(var(--gap) * 1.7);
   height: 100%;
   min-height: 0;
 }
@@ -145,8 +225,8 @@ body.is-phone {
   gap: var(--gap);
   min-height: 0;
   min-width: 0;
-  /* Whatever does not fit is cut at the area boundary rather than bleeding
-     into the widget below it. */
+  /* Whatever does not fit is cut at the area boundary rather than
+     bleeding into the widget below it. */
   overflow: hidden;
 }
 
@@ -156,31 +236,55 @@ body.is-phone {
   flex: 0 0 auto;
 }
 
-/* The agenda is the one widget that should give up space first: it is a list
-   that reads fine truncated, unlike a clock or a bin warning. */
+.widget[hidden] {
+  display: none;
+}
+
+/* The agenda gives up space first: a list reads fine truncated, unlike a
+   clock or a bin warning. */
 .widget-agenda {
+  display: flex;
+  flex-direction: column;
   flex: 0 1 auto;
+  min-height: 0;
   overflow: hidden;
 }
 
-.widget[hidden] {
-  display: none;
+/* --- Surfaces ------------------------------------------------------ *
+ * Two nested edges — a hairline border plus an inset top highlight —
+ * read as a machined plate catching light, where a flat fill reads as a
+ * grey rectangle. Used sparingly: boxing every widget would make the
+ * wall busier, not clearer. */
+
+.panel {
+  padding: calc(var(--u) * 1.05) calc(var(--u) * 1.2);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(180deg, var(--panel-sheen), transparent 42%),
+    var(--panel);
+  /* Shadow tinted to the background hue, never neutral black. */
+  box-shadow:
+    inset 0 1px 0 hsl(220 60% 100% / 0.06),
+    0 calc(var(--u) * 0.6) calc(var(--u) * 1.6) hsl(222 60% 2% / 0.5);
 }
 
 .widget-title {
   display: flex;
   align-items: baseline;
-  gap: 0.5em;
-  margin: 0 0 0.5em;
-  font-size: calc(var(--u) * 0.85);
+  gap: 0.55em;
+  margin: 0 0 0.6em;
+  font-size: calc(var(--u) * 0.78);
   font-weight: 600;
-  letter-spacing: 0.16em;
+  /* Small caps need the extra tracking that display sizes must not have. */
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .widget-count {
-  font-size: 0.9em;
+  font-size: 0.92em;
+  font-weight: 500;
   letter-spacing: 0;
   color: var(--ink-dim);
 }
@@ -188,297 +292,375 @@ body.is-phone {
 .widget-empty {
   margin: 0;
   color: var(--ink-faint);
-  font-size: calc(var(--u) * 0.95);
+  font-size: calc(var(--u) * 0.92);
 }
 
 .widget-empty[hidden] {
   display: none;
 }
 
-/* ------------------------------------------------------------------ *
+/* ==================================================================== *
  * Clock
- * ------------------------------------------------------------------ */
+ * ==================================================================== */
 
 .clock-row {
   display: flex;
   align-items: baseline;
-  gap: 0.2em;
+  gap: 0.22em;
 }
 
 .clock-time {
-  font-size: calc(var(--u) * 6.4);
+  font-family: var(--font-display);
+  font-size: calc(var(--u) * 6.6);
   font-weight: 200;
-  line-height: 0.92;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
+  line-height: 0.88;
+  /* Large display type needs negative tracking; at this size the default
+     spacing reads as gappy. */
+  letter-spacing: -0.035em;
 }
 
 .clock-seconds {
-  font-size: calc(var(--u) * 1.8);
+  font-size: calc(var(--u) * 1.7);
   font-weight: 300;
   color: var(--ink-faint);
-  font-variant-numeric: tabular-nums;
 }
 
 .clock-date {
-  margin-top: 0.25em;
-  font-size: calc(var(--u) * 1.5);
+  margin-top: 0.35em;
+  font-size: calc(var(--u) * 1.45);
   font-weight: 300;
-  color: var(--ink-dim);
+  letter-spacing: -0.005em;
+  color: var(--ink-soft);
 }
 
 .clock-compliment {
-  margin-top: 0.8em;
-  font-size: calc(var(--u) * 1.15);
+  margin-top: 0.85em;
+  max-width: 28ch;
+  font-size: calc(var(--u) * 1.1);
   font-weight: 300;
+  line-height: 1.42;
   color: var(--accent);
-  max-width: 26ch;
+  text-wrap: pretty;
 }
 
 .clock-compliment.is-empty {
   display: none;
 }
 
-/* ------------------------------------------------------------------ *
- * Brief
- * ------------------------------------------------------------------ */
+/* ==================================================================== *
+ * Brief — the one line you read if you read nothing else
+ * ==================================================================== */
 
 .widget-brief {
-  padding: calc(var(--u) * 0.9) calc(var(--u) * 1.1);
-  border-left: calc(var(--u) * 0.2) solid var(--accent);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  background: var(--panel);
+  position: relative;
+  padding: calc(var(--u) * 1.05) calc(var(--u) * 1.3);
+  border-radius: var(--r-md);
+  background: linear-gradient(90deg, var(--panel), transparent 88%);
 }
 
-.widget-brief[data-mood='wet'] {
-  border-left-color: var(--wet);
+/* The severity rail, drawn rather than bordered so it can round its own
+   ends and not fight the panel radius. */
+.widget-brief::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--u) * 0.15) auto calc(var(--u) * 0.15) 0;
+  width: calc(var(--u) * 0.18);
+  border-radius: 999px;
+  background: var(--accent);
+  transition: background 600ms var(--ease-out);
 }
-.widget-brief[data-mood='warn'] {
-  border-left-color: var(--warn);
+
+.widget-brief[data-mood='wet']::before {
+  background: var(--wet);
 }
-.widget-brief[data-mood='alert'] {
-  border-left-color: var(--alert);
+.widget-brief[data-mood='warn']::before {
+  background: var(--warn);
+}
+.widget-brief[data-mood='alert']::before {
+  background: var(--alert);
 }
 
 .brief-headline {
   margin: 0;
-  font-size: calc(var(--u) * 1.35);
+  font-size: calc(var(--u) * 1.4);
   font-weight: 400;
+  letter-spacing: -0.012em;
+  line-height: 1.25;
+  text-wrap: balance;
 }
 
 .brief-detail {
-  margin: 0.5em 0 0;
-  padding: 0;
-  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.25em;
-  font-size: calc(var(--u) * 1);
-  color: var(--ink-dim);
+  gap: 0.28em;
+  margin: 0.55em 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: calc(var(--u) * 0.98);
+  color: var(--ink-soft);
 }
 
 .brief-detail.is-empty {
   display: none;
 }
 
-/* ------------------------------------------------------------------ *
+/* ==================================================================== *
  * Weather
- * ------------------------------------------------------------------ */
+ * ==================================================================== */
 
 .widget-weather.is-stale {
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .wx-now {
   display: flex;
   align-items: center;
-  gap: calc(var(--u) * 0.8);
+  gap: calc(var(--u) * 0.95);
 }
 
 .wx-icon {
-  font-size: calc(var(--u) * 3.2);
-  line-height: 1;
+  flex: none;
+  width: calc(var(--u) * 3.1);
+  color: var(--ink);
+}
+
+.wx-glyph {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.wx-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
 }
 
 .wx-temp {
-  font-size: calc(var(--u) * 2.8);
+  font-family: var(--font-display);
+  font-size: calc(var(--u) * 2.9);
   font-weight: 200;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.032em;
 }
 
 .wx-summary {
   font-size: calc(var(--u) * 1.05);
-  color: var(--ink-dim);
+  font-weight: 400;
+  color: var(--ink-soft);
 }
 
 .wx-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 0.9em;
-  margin-top: 0.2em;
+  gap: 0 0.95em;
+  margin-top: 0.3em;
   font-size: calc(var(--u) * 0.85);
-  color: var(--ink-faint);
+  color: var(--ink-dim);
 }
 
-/* UV is the one number worth colouring: it is advice, not trivia. */
-.wx-meta[data-uv='high'] span:last-child {
+.wx-uv {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.wx-uv[data-band='high'] {
   color: var(--warn);
 }
-.wx-meta[data-uv='very-high'] span:last-child,
-.wx-meta[data-uv='extreme'] span:last-child {
+
+.wx-uv[data-band='very-high'],
+.wx-uv[data-band='extreme'] {
   color: var(--alert);
   font-weight: 600;
 }
+
+/* --- Hourly strip -------------------------------------------------- */
 
 .wx-hourly {
   display: flex;
   justify-content: space-between;
   gap: calc(var(--u) * 0.3);
-  margin-top: calc(var(--u) * 0.9);
-  padding-top: calc(var(--u) * 0.7);
-  border-top: 1px solid var(--panel-line);
+  margin-top: calc(var(--u) * 1);
+  padding-top: calc(var(--u) * 0.85);
+  border-top: 1px solid var(--hairline);
 }
 
 .wx-hour {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15em;
-  font-size: calc(var(--u) * 0.8);
-  color: var(--ink-dim);
+  gap: 0.22em;
   min-width: 0;
+  font-size: calc(var(--u) * 0.78);
+  color: var(--ink-dim);
 }
 
 .wx-hour-icon {
-  font-size: calc(var(--u) * 1.1);
+  width: calc(var(--u) * 1.25);
+  color: var(--ink-soft);
 }
 
 .wx-hour-temp {
-  color: var(--ink);
   font-size: calc(var(--u) * 0.95);
+  font-weight: 500;
+  color: var(--ink);
 }
 
-.wx-hour-rain {
+.wx-hour-rain,
+.wx-day-rain {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+  min-height: 1.15em;
+  font-size: calc(var(--u) * 0.72);
   color: var(--wet);
-  font-size: calc(var(--u) * 0.7);
-  min-height: 1em;
 }
+
+.wx-hour-rain.is-empty,
+.wx-day-rain.is-empty {
+  visibility: hidden;
+}
+
+.drop-glyph {
+  width: 0.72em;
+  height: 0.72em;
+  flex: none;
+}
+
+/* --- Daily forecast ------------------------------------------------ */
 
 .wx-daily {
-  margin-top: calc(var(--u) * 0.7);
-  padding-top: calc(var(--u) * 0.6);
-  border-top: 1px solid var(--panel-line);
   display: flex;
   flex-direction: column;
-  gap: 0.2em;
+  gap: 0.34em;
+  margin-top: calc(var(--u) * 0.85);
+  padding-top: calc(var(--u) * 0.75);
+  border-top: 1px solid var(--hairline);
 }
 
 .wx-day {
   display: grid;
-  grid-template-columns: 3.5em 1.6em 3em 1fr;
+  grid-template-columns: 2.9em 1.5em 2.6em 2.1em 1fr 2.1em;
   align-items: center;
-  gap: 0.4em;
-  font-size: calc(var(--u) * 0.95);
+  gap: 0.5em;
+  font-size: calc(var(--u) * 0.92);
   color: var(--ink-dim);
 }
 
-.wx-day-range {
+.wx-day-icon {
+  width: calc(var(--u) * 1.15);
+  color: var(--ink-soft);
+}
+
+.wx-day-min {
   text-align: right;
-  font-variant-numeric: tabular-nums;
+  color: var(--ink-dim);
 }
 
-.wx-day-range b {
-  color: var(--ink);
+.wx-day-max {
+  text-align: right;
   font-weight: 500;
+  color: var(--ink);
 }
 
-.wx-day-rain {
-  color: var(--wet);
-  font-size: 0.85em;
+/* A range bar turns four pairs of numbers into a shape you can compare
+   without reading any of them. */
+.wx-day-track {
+  position: relative;
+  height: 0.32em;
+  border-radius: 999px;
+  background: hsl(220 30% 100% / 0.07);
 }
 
-/* ------------------------------------------------------------------ *
+.wx-day-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
+}
+
+/* ==================================================================== *
  * Surf
- * ------------------------------------------------------------------ */
+ * ==================================================================== */
 
 .surf-body {
   display: flex;
-  gap: calc(var(--u) * 1.4);
+  gap: calc(var(--u) * 1.5);
 }
 
 .surf-stat {
   display: flex;
   flex-direction: column;
+  gap: 0.1em;
 }
 
 .surf-stat-value {
-  font-size: calc(var(--u) * 1.5);
+  font-family: var(--font-display);
+  font-size: calc(var(--u) * 1.45);
   font-weight: 300;
-  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .surf-stat-label {
-  font-size: calc(var(--u) * 0.7);
-  letter-spacing: 0.12em;
+  font-size: calc(var(--u) * 0.66);
+  font-weight: 500;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
-/* ------------------------------------------------------------------ *
+/* ==================================================================== *
  * Agenda
- * ------------------------------------------------------------------ */
-
-.widget-agenda {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.widget-agenda .agenda-body {
-  flex: 1 1 auto;
-}
+ * ==================================================================== */
 
 .agenda-body {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: calc(var(--u) * 0.9);
+  gap: calc(var(--u) * 0.95);
   overflow: hidden;
 }
 
 .agenda-day-label {
-  margin: 0 0 0.3em;
-  font-size: calc(var(--u) * 0.85);
-  font-weight: 500;
-  letter-spacing: 0.1em;
+  margin: 0 0 0.35em;
+  font-size: calc(var(--u) * 0.78);
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .agenda-event {
   display: grid;
-  grid-template-columns: auto 5.2em 1fr;
+  grid-template-columns: auto 5em 1fr;
   align-items: baseline;
-  gap: 0.6em;
-  padding: 0.22em 0;
-  font-size: calc(var(--u) * 1.15);
+  gap: 0.65em;
+  padding: 0.24em 0;
+  font-size: calc(var(--u) * 1.12);
 }
 
+.agenda-dot {
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 50%;
+  transform: translateY(-0.08em);
+}
+
+/* An event already under way is the only agenda row that matters right
+   now, so it gets the accent and a lit dot. */
 .agenda-event.is-now .agenda-title {
   color: var(--accent);
 }
 
-.agenda-dot {
-  width: 0.45em;
-  height: 0.45em;
-  border-radius: 50%;
-  transform: translateY(-0.1em);
+.agenda-event.is-now .agenda-dot {
+  box-shadow: 0 0 0 0.18em hsl(199 72% 70% / 0.16);
 }
 
 .agenda-time {
+  font-size: 0.84em;
   color: var(--ink-dim);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.85em;
 }
 
 .agenda-detail {
@@ -487,44 +669,47 @@ body.is-phone {
   min-width: 0;
 }
 
-.agenda-title {
+.agenda-title,
+.agenda-location {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .agenda-location {
-  font-size: 0.7em;
+  font-size: 0.68em;
   color: var(--ink-faint);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* ------------------------------------------------------------------ *
+/* ==================================================================== *
  * Lists and reminders
- * ------------------------------------------------------------------ */
+ * ==================================================================== */
 
 .list-body,
 .reminder-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15em;
 }
 
-.list-item {
+.list-item,
+.reminder-item {
   display: flex;
   align-items: baseline;
-  gap: 0.5em;
-  font-size: calc(var(--u) * 1.1);
+  gap: 0.55em;
+  font-size: calc(var(--u) * 1.08);
 }
 
 .list-bullet {
-  color: var(--ink-faint);
-  font-size: 0.8em;
+  flex: none;
+  width: 0.42em;
+  height: 0.42em;
+  border: 1px solid var(--ink-faint);
+  border-radius: var(--r-sm);
+  transform: translateY(-0.05em);
 }
 
 .list-text {
@@ -533,48 +718,42 @@ body.is-phone {
   white-space: nowrap;
 }
 
-.list-by {
-  font-size: 0.65em;
+.list-by,
+.reminder-who,
+.reminder-due {
+  font-size: 0.66em;
   color: var(--ink-faint);
 }
 
 .list-more {
-  margin: 0.3em 0 0;
-  font-size: calc(var(--u) * 0.8);
+  margin: 0.45em 0 0;
+  font-size: calc(var(--u) * 0.78);
   color: var(--ink-faint);
 }
 
-.reminder-item {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5em;
-  font-size: calc(var(--u) * 1.1);
-}
-
-.reminder-item.is-overdue .reminder-text {
-  color: var(--warn);
-}
-
-.reminder-who,
-.reminder-due {
-  font-size: 0.7em;
-  color: var(--ink-faint);
-}
-
+.reminder-item.is-overdue .reminder-text,
 .reminder-item.is-overdue .reminder-due {
   color: var(--warn);
 }
 
+/* --- Bin night ----------------------------------------------------- *
+ * The one thing on the wall with a hard deadline you cannot redo, so it
+ * is the only element permitted to move. */
+
 .bin-banner {
-  display: flex;
+  /* Sized to its content — stretched full-width it read as an empty panel
+     with a label stranded at one end. */
+  display: inline-flex;
+  align-self: flex-start;
   align-items: center;
-  gap: 0.5em;
-  margin-bottom: 0.6em;
-  padding: 0.45em 0.7em;
-  border-radius: var(--radius);
-  background: rgba(248, 113, 113, 0.14);
+  gap: 0.6em;
+  margin-bottom: 0.7em;
+  padding: 0.5em 0.8em;
+  border: 1px solid hsl(2 76% 68% / 0.22);
+  border-radius: var(--r-md);
+  background: hsl(2 76% 60% / 0.12);
   font-size: calc(var(--u) * 1.05);
-  animation: pulse 4s ease-in-out infinite;
+  animation: breathe 5s var(--ease-in-out) infinite;
 }
 
 .bin-banner[hidden] {
@@ -583,55 +762,50 @@ body.is-phone {
 
 .bin-banner-label {
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
 }
 
 .bin-chip {
-  padding: 0.1em 0.55em;
-  border-radius: 999px;
-  font-size: 0.8em;
+  padding: 0.12em 0.6em;
+  border-radius: var(--r-sm);
+  font-size: 0.78em;
   font-weight: 600;
-  color: #10131a;
+  letter-spacing: 0.02em;
+  color: hsl(222 32% 6%);
 }
 
 .bin-general {
-  background: #f87171;
+  background: var(--alert);
 }
 .bin-recycling {
-  background: #fbbf24;
+  background: var(--warn);
 }
 .bin-green {
-  background: #4ade80;
+  background: hsl(142 60% 62%);
 }
 
-@keyframes pulse {
+@keyframes breathe {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.7;
+    opacity: 0.62;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .bin-banner {
-    animation: none;
-  }
-}
-
-/* ------------------------------------------------------------------ *
+/* ==================================================================== *
  * News
- * ------------------------------------------------------------------ */
+ * ==================================================================== */
 
 .widget-news {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--gap);
-  padding-top: calc(var(--u) * 0.7);
-  border-top: 1px solid var(--panel-line);
   min-width: 0;
+  padding-top: calc(var(--u) * 0.8);
+  border-top: 1px solid var(--hairline);
 }
 
 .widget-news[hidden] {
@@ -641,34 +815,94 @@ body.is-phone {
 .news-line {
   display: flex;
   align-items: baseline;
-  gap: 0.7em;
+  gap: 0.8em;
   min-width: 0;
 }
 
 .news-source {
   flex: none;
-  font-size: calc(var(--u) * 0.7);
-  letter-spacing: 0.14em;
+  font-size: calc(var(--u) * 0.68);
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
 .news-headline {
-  font-size: calc(var(--u) * 1.05);
-  color: var(--ink-dim);
   overflow: hidden;
+  font-size: calc(var(--u) * 1.02);
+  color: var(--ink-soft);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Headlines rotate rather than scroll: moving text in peripheral vision
+   is the fastest way to make a room feel restless. */
 .news-headline.is-fresh {
-  animation: fade-in 700ms ease;
+  animation: headline-in 620ms var(--ease-out);
 }
 
-@keyframes fade-in {
+@keyframes headline-in {
   from {
     opacity: 0;
-    transform: translateY(0.3em);
+    transform: translateY(0.35em);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+.news-dots {
+  display: flex;
+  flex: none;
+  gap: 0.38em;
+}
+
+.news-dots i {
+  width: 0.32em;
+  height: 0.32em;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  opacity: 0.32;
+  transition:
+    opacity 300ms var(--ease-out),
+    background 300ms var(--ease-out);
+}
+
+.news-dots i.is-active {
+  background: var(--accent);
+  opacity: 1;
+}
+
+/* ==================================================================== *
+ * Boot choreography
+ *
+ * The wall is watched constantly, so updates never animate — a widget
+ * that slides every minute is torture. A cold boot, though, happens
+ * rarely, which is exactly when a stagger earns its place.
+ * ==================================================================== */
+
+.dashboard .area > .widget {
+  animation: rise 700ms var(--ease-out) backwards;
+}
+
+.area:nth-child(1) > .widget:nth-child(1) { animation-delay: 40ms; }
+.area:nth-child(1) > .widget:nth-child(2) { animation-delay: 100ms; }
+.area:nth-child(1) > .widget:nth-child(3) { animation-delay: 160ms; }
+.area:nth-child(2) > .widget:nth-child(1) { animation-delay: 120ms; }
+.area:nth-child(2) > .widget:nth-child(2) { animation-delay: 180ms; }
+.area:nth-child(2) > .widget:nth-child(3) { animation-delay: 240ms; }
+.area:nth-child(3) > .widget:nth-child(1) { animation-delay: 260ms; }
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    /* Never from scale(0) or from nothing — a small offset reads as the
+       element settling, not appearing out of the void. */
+    transform: translateY(calc(var(--u) * 0.7));
   }
   to {
     opacity: 1;
@@ -676,42 +910,17 @@ body.is-phone {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .news-headline.is-fresh {
-    animation: none;
-  }
-}
-
-.news-dots {
-  display: flex;
-  gap: 0.35em;
-  flex: none;
-}
-
-.news-dots i {
-  width: 0.35em;
-  height: 0.35em;
-  border-radius: 50%;
-  background: var(--ink-faint);
-  opacity: 0.35;
-}
-
-.news-dots i.is-active {
-  opacity: 1;
-  background: var(--accent);
-}
-
-/* ------------------------------------------------------------------ *
+/* ==================================================================== *
  * Phone companion
- * ------------------------------------------------------------------ */
+ * ==================================================================== */
 
 .phone {
-  max-width: 34rem;
-  margin: 0 auto;
-  padding: 1rem 1rem calc(2rem + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.95rem;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 1rem 1rem calc(2.5rem + env(safe-area-inset-bottom));
 }
 
 .phone-header {
@@ -723,17 +932,20 @@ body.is-phone {
 
 .phone-header h1 {
   margin: 0;
-  font-size: 1.25rem;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
   font-weight: 500;
+  letter-spacing: -0.015em;
 }
 
 .phone-who {
   width: 8rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--panel-line);
-  border-radius: 0.6rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-md);
   background: var(--panel);
   color: var(--ink);
+  font-family: inherit;
   font-size: 0.85rem;
 }
 
@@ -744,21 +956,28 @@ body.is-phone {
 
 .phone-tabs button {
   flex: 1;
-  padding: 0.55rem 0.5rem;
-  border: 1px solid var(--panel-line);
-  border-radius: 0.7rem;
+  padding: 0.6rem 0.5rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-md);
   background: transparent;
   color: var(--ink-dim);
-  font-size: 0.9rem;
   font-family: inherit;
+  font-size: 0.9rem;
   cursor: pointer;
+  transition:
+    color 180ms var(--ease-out),
+    background 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    transform 140ms var(--ease-out);
 }
 
 .phone-tabs button.is-active {
+  border-color: hsl(199 72% 70% / 0.45);
   background: var(--panel);
   color: var(--ink);
-  border-color: var(--accent);
 }
+
+/* --- Add row ------------------------------------------------------- */
 
 .add-row {
   display: flex;
@@ -774,42 +993,54 @@ body.is-phone {
 .add-repeat {
   flex: 1;
   min-width: 0;
-  padding: 0.75rem 0.8rem;
-  border: 1px solid var(--panel-line);
-  border-radius: 0.7rem;
+  padding: 0.8rem 0.85rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r-md);
   background: var(--panel);
   color: var(--ink);
+  font-family: inherit;
   /* 16px keeps iOS from zooming the viewport on focus. */
   font-size: 16px;
-  font-family: inherit;
+  transition:
+    border-color 180ms var(--ease-out),
+    background 180ms var(--ease-out);
+}
+
+.add-input::placeholder {
+  color: var(--ink-faint);
 }
 
 .add-button,
 .clear-button {
-  padding: 0.75rem 1.1rem;
+  padding: 0.8rem 1.15rem;
   border: none;
-  border-radius: 0.7rem;
+  border-radius: var(--r-md);
   background: var(--accent);
-  color: #06121b;
+  color: hsl(222 40% 8%);
+  font-family: inherit;
   font-size: 1rem;
   font-weight: 600;
-  font-family: inherit;
   cursor: pointer;
+  transition:
+    transform 140ms var(--ease-out),
+    filter 180ms var(--ease-out);
 }
 
 .clear-button {
+  border: 1px solid var(--panel-edge);
   background: transparent;
-  border: 1px solid var(--panel-line);
   color: var(--ink-dim);
   font-weight: 400;
 }
 
+/* --- Rows ---------------------------------------------------------- */
+
 .phone-list {
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
 }
 
 .phone-row {
@@ -817,12 +1048,12 @@ body.is-phone {
   align-items: center;
   gap: 0.6rem;
   padding: 0.15rem 0;
-  border-bottom: 1px solid var(--panel-line);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .phone-row.is-done .row-text {
-  text-decoration: line-through;
   color: var(--ink-faint);
+  text-decoration: line-through;
 }
 
 .phone-row.is-overdue .row-meta {
@@ -832,7 +1063,8 @@ body.is-phone {
 .row-check,
 .row-delete {
   flex: none;
-  /* Comfortable thumb targets; this view is used one-handed in a supermarket. */
+  /* Comfortable thumb targets: this view is used one-handed in a
+     supermarket, not with a mouse. */
   min-width: 2.75rem;
   min-height: 2.75rem;
   border: none;
@@ -840,6 +1072,7 @@ body.is-phone {
   color: var(--ink-dim);
   font-size: 1.15rem;
   cursor: pointer;
+  transition: transform 140ms var(--ease-out), color 180ms var(--ease-out);
 }
 
 .row-delete {
@@ -856,11 +1089,11 @@ body.is-phone {
 }
 
 .row-body {
-  flex: 1;
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
-  padding: 0.35rem 0;
+  padding: 0.4rem 0;
 }
 
 .row-text {
@@ -874,8 +1107,77 @@ body.is-phone {
 
 .phone-banner {
   margin: 0;
-  padding: 0.6rem 0.8rem;
-  border-radius: 0.7rem;
-  background: rgba(248, 113, 113, 0.14);
+  padding: 0.65rem 0.85rem;
+  border: 1px solid hsl(2 76% 68% / 0.22);
+  border-radius: var(--r-md);
+  background: hsl(2 76% 60% / 0.12);
   font-size: 0.9rem;
+}
+
+/* --- Interaction states -------------------------------------------- *
+ * Press feedback is the difference between an interface that feels
+ * heard and one that feels broken. Hover is gated behind a real pointer
+ * so a tap does not leave a stuck hover state on the phone. */
+
+.add-button:active,
+.clear-button:active,
+.phone-tabs button:active,
+.row-check:active,
+.row-delete:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .add-button:hover,
+  .clear-button:hover {
+    filter: brightness(1.08);
+  }
+
+  .phone-tabs button:hover:not(.is-active) {
+    color: var(--ink-soft);
+    background: var(--panel);
+  }
+
+  .row-check:hover,
+  .row-delete:hover {
+    color: var(--ink);
+  }
+}
+
+:where(button, input, select, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.add-input:focus-visible,
+.add-due:focus-visible,
+.add-repeat:focus-visible,
+.phone-who:focus-visible {
+  border-color: hsl(199 72% 70% / 0.5);
+  outline-offset: 0;
+}
+
+/* ==================================================================== *
+ * Reduced motion
+ *
+ * Fewer and gentler, not zero: opacity still carries meaning, movement
+ * does not.
+ * ==================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .bin-banner,
+  .news-headline.is-fresh,
+  .dashboard .area > .widget {
+    animation: none;
+  }
+
+  .dashboard {
+    transition: opacity 4s linear;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto;
+  }
 }
