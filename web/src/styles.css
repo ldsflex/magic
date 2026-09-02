@@ -1,0 +1,881 @@
+/* ------------------------------------------------------------------ *
+ * Tokens
+ * ------------------------------------------------------------------ */
+
+:root {
+  --bg: #05070d;
+  --panel: rgba(255, 255, 255, 0.035);
+  --panel-line: rgba(255, 255, 255, 0.07);
+  --ink: #e9eefb;
+  --ink-dim: #93a0bb;
+  --ink-faint: #5a6784;
+
+  --accent: #7dd3fc;
+  --warn: #fbbf24;
+  --alert: #f87171;
+  --wet: #60a5fa;
+
+  --mood: transparent;
+  --night-dim: 1;
+
+  /* One scale, driven by the viewport, so the same build fits a 24" monitor
+     and a 55" TV without per-device tuning. */
+  --u: clamp(9px, 1.05vw, 22px);
+  --gap: calc(var(--u) * 1.1);
+  --radius: calc(var(--u) * 0.9);
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  font-size: var(--u);
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+body.is-phone {
+  overflow: auto;
+  font-size: 16px;
+}
+
+#app {
+  height: 100%;
+}
+
+/* ------------------------------------------------------------------ *
+ * Boot + connection states
+ * ------------------------------------------------------------------ */
+
+.boot {
+  display: grid;
+  place-content: center;
+  height: 100%;
+  color: var(--ink-faint);
+  font-size: calc(var(--u) * 1.6);
+  text-align: center;
+  gap: 0.6em;
+}
+
+.boot-detail {
+  font-size: 0.6em;
+  color: var(--ink-faint);
+  max-width: 40ch;
+}
+
+#app.is-offline .dashboard {
+  filter: saturate(0.4);
+}
+
+.status {
+  position: fixed;
+  right: calc(var(--u) * 0.8);
+  bottom: calc(var(--u) * 0.8);
+  width: calc(var(--u) * 0.5);
+  height: calc(var(--u) * 0.5);
+  border-radius: 50%;
+  background: transparent;
+  transition: background 600ms ease;
+}
+
+#app.is-offline .status,
+.status.is-stale {
+  background: var(--warn);
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ *
+ * Dashboard shell
+ * ------------------------------------------------------------------ */
+
+.dashboard {
+  height: 100%;
+  padding: calc(var(--u) * 1.4);
+  /* The burn-in nudge and the night dimmer both live on this element. */
+  transition:
+    transform 3s ease,
+    opacity 4s ease;
+  opacity: var(--night-dim);
+  background: radial-gradient(
+    120% 90% at 80% 0%,
+    var(--mood) 0%,
+    transparent 60%
+  );
+}
+
+.dashboard[data-mood='wet'] {
+  --mood: rgba(96, 165, 250, 0.13);
+}
+.dashboard[data-mood='warn'] {
+  --mood: rgba(251, 191, 36, 0.13);
+}
+.dashboard[data-mood='alert'] {
+  --mood: rgba(248, 113, 113, 0.16);
+}
+
+.dashboard.is-night {
+  /* Warmer and flatter after bedtime, so it does not light the hallway. */
+  filter: sepia(0.25) saturate(0.7);
+}
+
+.grid {
+  display: grid;
+  gap: calc(var(--gap) * 1.6);
+  height: 100%;
+  min-height: 0;
+}
+
+.area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+  min-width: 0;
+  /* Whatever does not fit is cut at the area boundary rather than bleeding
+     into the widget below it. */
+  overflow: hidden;
+}
+
+.widget {
+  min-height: 0;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+/* The agenda is the one widget that should give up space first: it is a list
+   that reads fine truncated, unlike a clock or a bin warning. */
+.widget-agenda {
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.widget[hidden] {
+  display: none;
+}
+
+.widget-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  margin: 0 0 0.5em;
+  font-size: calc(var(--u) * 0.85);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.widget-count {
+  font-size: 0.9em;
+  letter-spacing: 0;
+  color: var(--ink-dim);
+}
+
+.widget-empty {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: calc(var(--u) * 0.95);
+}
+
+.widget-empty[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Clock
+ * ------------------------------------------------------------------ */
+
+.clock-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2em;
+}
+
+.clock-time {
+  font-size: calc(var(--u) * 6.4);
+  font-weight: 200;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-seconds {
+  font-size: calc(var(--u) * 1.8);
+  font-weight: 300;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-date {
+  margin-top: 0.25em;
+  font-size: calc(var(--u) * 1.5);
+  font-weight: 300;
+  color: var(--ink-dim);
+}
+
+.clock-compliment {
+  margin-top: 0.8em;
+  font-size: calc(var(--u) * 1.15);
+  font-weight: 300;
+  color: var(--accent);
+  max-width: 26ch;
+}
+
+.clock-compliment.is-empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Brief
+ * ------------------------------------------------------------------ */
+
+.widget-brief {
+  padding: calc(var(--u) * 0.9) calc(var(--u) * 1.1);
+  border-left: calc(var(--u) * 0.2) solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--panel);
+}
+
+.widget-brief[data-mood='wet'] {
+  border-left-color: var(--wet);
+}
+.widget-brief[data-mood='warn'] {
+  border-left-color: var(--warn);
+}
+.widget-brief[data-mood='alert'] {
+  border-left-color: var(--alert);
+}
+
+.brief-headline {
+  margin: 0;
+  font-size: calc(var(--u) * 1.35);
+  font-weight: 400;
+}
+
+.brief-detail {
+  margin: 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  font-size: calc(var(--u) * 1);
+  color: var(--ink-dim);
+}
+
+.brief-detail.is-empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Weather
+ * ------------------------------------------------------------------ */
+
+.widget-weather.is-stale {
+  opacity: 0.5;
+}
+
+.wx-now {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 0.8);
+}
+
+.wx-icon {
+  font-size: calc(var(--u) * 3.2);
+  line-height: 1;
+}
+
+.wx-temp {
+  font-size: calc(var(--u) * 2.8);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.wx-summary {
+  font-size: calc(var(--u) * 1.05);
+  color: var(--ink-dim);
+}
+
+.wx-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.9em;
+  margin-top: 0.2em;
+  font-size: calc(var(--u) * 0.85);
+  color: var(--ink-faint);
+}
+
+/* UV is the one number worth colouring: it is advice, not trivia. */
+.wx-meta[data-uv='high'] span:last-child {
+  color: var(--warn);
+}
+.wx-meta[data-uv='very-high'] span:last-child,
+.wx-meta[data-uv='extreme'] span:last-child {
+  color: var(--alert);
+  font-weight: 600;
+}
+
+.wx-hourly {
+  display: flex;
+  justify-content: space-between;
+  gap: calc(var(--u) * 0.3);
+  margin-top: calc(var(--u) * 0.9);
+  padding-top: calc(var(--u) * 0.7);
+  border-top: 1px solid var(--panel-line);
+}
+
+.wx-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  font-size: calc(var(--u) * 0.8);
+  color: var(--ink-dim);
+  min-width: 0;
+}
+
+.wx-hour-icon {
+  font-size: calc(var(--u) * 1.1);
+}
+
+.wx-hour-temp {
+  color: var(--ink);
+  font-size: calc(var(--u) * 0.95);
+}
+
+.wx-hour-rain {
+  color: var(--wet);
+  font-size: calc(var(--u) * 0.7);
+  min-height: 1em;
+}
+
+.wx-daily {
+  margin-top: calc(var(--u) * 0.7);
+  padding-top: calc(var(--u) * 0.6);
+  border-top: 1px solid var(--panel-line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+}
+
+.wx-day {
+  display: grid;
+  grid-template-columns: 3.5em 1.6em 3em 1fr;
+  align-items: center;
+  gap: 0.4em;
+  font-size: calc(var(--u) * 0.95);
+  color: var(--ink-dim);
+}
+
+.wx-day-range {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.wx-day-range b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.wx-day-rain {
+  color: var(--wet);
+  font-size: 0.85em;
+}
+
+/* ------------------------------------------------------------------ *
+ * Surf
+ * ------------------------------------------------------------------ */
+
+.surf-body {
+  display: flex;
+  gap: calc(var(--u) * 1.4);
+}
+
+.surf-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.surf-stat-value {
+  font-size: calc(var(--u) * 1.5);
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+}
+
+.surf-stat-label {
+  font-size: calc(var(--u) * 0.7);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ------------------------------------------------------------------ *
+ * Agenda
+ * ------------------------------------------------------------------ */
+
+.widget-agenda {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.widget-agenda .agenda-body {
+  flex: 1 1 auto;
+}
+
+.agenda-body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.9);
+  overflow: hidden;
+}
+
+.agenda-day-label {
+  margin: 0 0 0.3em;
+  font-size: calc(var(--u) * 0.85);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.agenda-event {
+  display: grid;
+  grid-template-columns: auto 5.2em 1fr;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 0.22em 0;
+  font-size: calc(var(--u) * 1.15);
+}
+
+.agenda-event.is-now .agenda-title {
+  color: var(--accent);
+}
+
+.agenda-dot {
+  width: 0.45em;
+  height: 0.45em;
+  border-radius: 50%;
+  transform: translateY(-0.1em);
+}
+
+.agenda-time {
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85em;
+}
+
+.agenda-detail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.agenda-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agenda-location {
+  font-size: 0.7em;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Lists and reminders
+ * ------------------------------------------------------------------ */
+
+.list-body,
+.reminder-body {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+}
+
+.list-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  font-size: calc(var(--u) * 1.1);
+}
+
+.list-bullet {
+  color: var(--ink-faint);
+  font-size: 0.8em;
+}
+
+.list-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-by {
+  font-size: 0.65em;
+  color: var(--ink-faint);
+}
+
+.list-more {
+  margin: 0.3em 0 0;
+  font-size: calc(var(--u) * 0.8);
+  color: var(--ink-faint);
+}
+
+.reminder-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  font-size: calc(var(--u) * 1.1);
+}
+
+.reminder-item.is-overdue .reminder-text {
+  color: var(--warn);
+}
+
+.reminder-who,
+.reminder-due {
+  font-size: 0.7em;
+  color: var(--ink-faint);
+}
+
+.reminder-item.is-overdue .reminder-due {
+  color: var(--warn);
+}
+
+.bin-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.6em;
+  padding: 0.45em 0.7em;
+  border-radius: var(--radius);
+  background: rgba(248, 113, 113, 0.14);
+  font-size: calc(var(--u) * 1.05);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.bin-banner[hidden] {
+  display: none;
+}
+
+.bin-banner-label {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.bin-chip {
+  padding: 0.1em 0.55em;
+  border-radius: 999px;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: #10131a;
+}
+
+.bin-general {
+  background: #f87171;
+}
+.bin-recycling {
+  background: #fbbf24;
+}
+.bin-green {
+  background: #4ade80;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bin-banner {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * News
+ * ------------------------------------------------------------------ */
+
+.widget-news {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding-top: calc(var(--u) * 0.7);
+  border-top: 1px solid var(--panel-line);
+  min-width: 0;
+}
+
+.widget-news[hidden] {
+  display: none;
+}
+
+.news-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+  min-width: 0;
+}
+
+.news-source {
+  flex: none;
+  font-size: calc(var(--u) * 0.7);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.news-headline {
+  font-size: calc(var(--u) * 1.05);
+  color: var(--ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.news-headline.is-fresh {
+  animation: fade-in 700ms ease;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.3em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-headline.is-fresh {
+    animation: none;
+  }
+}
+
+.news-dots {
+  display: flex;
+  gap: 0.35em;
+  flex: none;
+}
+
+.news-dots i {
+  width: 0.35em;
+  height: 0.35em;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  opacity: 0.35;
+}
+
+.news-dots i.is-active {
+  opacity: 1;
+  background: var(--accent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Phone companion
+ * ------------------------------------------------------------------ */
+
+.phone {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 1rem 1rem calc(2rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.phone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.phone-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.phone-who {
+  width: 8rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--panel-line);
+  border-radius: 0.6rem;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+
+.phone-tabs {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.phone-tabs button {
+  flex: 1;
+  padding: 0.55rem 0.5rem;
+  border: 1px solid var(--panel-line);
+  border-radius: 0.7rem;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.phone-tabs button.is-active {
+  background: var(--panel);
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.add-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-row.is-stacked {
+  flex-direction: column;
+}
+
+.add-input,
+.add-due,
+.add-repeat {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--panel-line);
+  border-radius: 0.7rem;
+  background: var(--panel);
+  color: var(--ink);
+  /* 16px keeps iOS from zooming the viewport on focus. */
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.add-button,
+.clear-button {
+  padding: 0.75rem 1.1rem;
+  border: none;
+  border-radius: 0.7rem;
+  background: var(--accent);
+  color: #06121b;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.clear-button {
+  background: transparent;
+  border: 1px solid var(--panel-line);
+  color: var(--ink-dim);
+  font-weight: 400;
+}
+
+.phone-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.15rem 0;
+  border-bottom: 1px solid var(--panel-line);
+}
+
+.phone-row.is-done .row-text {
+  text-decoration: line-through;
+  color: var(--ink-faint);
+}
+
+.phone-row.is-overdue .row-meta {
+  color: var(--warn);
+}
+
+.row-check,
+.row-delete {
+  flex: none;
+  /* Comfortable thumb targets; this view is used one-handed in a supermarket. */
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.row-delete {
+  color: var(--ink-faint);
+  font-size: 0.95rem;
+}
+
+.row-dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: 0.9rem;
+  border-radius: 50%;
+}
+
+.row-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.35rem 0;
+}
+
+.row-text {
+  font-size: 1rem;
+}
+
+.row-meta {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.phone-banner {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.7rem;
+  background: rgba(248, 113, 113, 0.14);
+  font-size: 0.9rem;
+}
