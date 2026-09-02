@@ -33,7 +33,7 @@ export const listWidget: WidgetFactory = (ctx): Widget => {
           el(
             'li',
             { class: 'list-item' },
-            el('span', { class: 'list-bullet', text: '▢' }),
+            el('span', { class: 'list-bullet', 'aria-hidden': 'true' }),
             el('span', { class: 'list-text', text: item.text }),
             item.addedBy ? el('span', { class: 'list-by', text: item.addedBy }) : null,
           ),
