@@ -1,0 +1,77 @@
+{
+  "household": {
+    "name": "Home",
+    "timezone": "Australia/Sydney",
+    "locale": "en-AU",
+    "people": [
+      { "id": "tito", "name": "Tito", "colour": "#7dd3fc" }
+    ]
+  },
+  "location": {
+    "name": "Byron Bay",
+    "latitude": -28.6434,
+    "longitude": 153.6122
+  },
+  "display": {
+    "orientation": "landscape",
+    "nightMode": { "enabled": true, "from": "21:30", "to": "06:00", "dim": 0.45 },
+    "burnInShift": true,
+    "rotateSeconds": 12
+  },
+  "layout": {
+    "columns": "1.35fr 1fr",
+    "rows": "auto 1fr auto",
+    "areas": [
+      "hero    aside",
+      "agenda  aside",
+      "ticker  ticker"
+    ]
+  },
+  "widgets": [
+    { "id": "clock", "type": "clock", "area": "hero" },
+    { "id": "brief", "type": "brief", "area": "hero" },
+    { "id": "weather", "type": "weather", "area": "aside", "options": { "hours": 8, "days": 4 } },
+    { "id": "surf", "type": "surf", "area": "aside" },
+    { "id": "agenda", "type": "agenda", "area": "agenda", "options": { "days": 3, "maxEvents": 8 } },
+    { "id": "list", "type": "list", "area": "aside", "options": { "listId": "shopping", "title": "Shopping", "max": 10 } },
+    { "id": "reminders", "type": "reminders", "area": "agenda", "options": { "max": 6 } },
+    { "id": "news", "type": "news", "area": "ticker", "options": { "max": 8 } }
+  ],
+  "sources": {
+    "weather": {
+      "enabled": true,
+      "refreshMinutes": 10
+    },
+    "surf": {
+      "enabled": true,
+      "refreshMinutes": 30
+    },
+    "calendar": {
+      "enabled": true,
+      "refreshMinutes": 15,
+      "feeds": []
+    },
+    "news": {
+      "enabled": true,
+      "refreshMinutes": 20,
+      "feeds": [
+        { "name": "ABC Top Stories", "url": "https://www.abc.net.au/news/feed/51120/rss.xml" }
+      ]
+    },
+    "bins": {
+      "enabled": true,
+      "anchorDate": "2026-09-02",
+      "anchorBins": ["general", "recycling"],
+      "cadenceDays": 7,
+      "alternating": [
+        ["general", "recycling"],
+        ["general", "green"]
+      ],
+      "remindFromHour": 16
+    },
+    "compliments": {
+      "enabled": true,
+      "file": "custom_compliments/custom_compliments.json"
+    }
+  }
+}
